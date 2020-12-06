@@ -74,37 +74,79 @@ const FoodDetails: React.FC = () => {
   useEffect(() => {
     async function loadFood(): Promise<void> {
       // Load a specific food with extras based on routeParams id
-    }
+      const result = await api.get(`/foods/${routeParams.id}`);
+      setFood(result.data);
 
+      const extrasFormatted: Extra[] = result.data.extras.map(value => {
+        return { ...value, quantity: 0 };
+      });
+      setExtras(extrasFormatted);
+    }
     loadFood();
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
     // Increment extra quantity
+    const index = extras.findIndex(item => item.id === id);
+    if (index < 0) {
+      return;
+    }
+    const novo = extras[index];
+    if (!novo.quantity) novo.quantity = 0;
+    novo.quantity += 1;
+    setExtras(extras.map(value => (value.id === id ? novo : value)));
   }
 
   function handleDecrementExtra(id: number): void {
     // Decrement extra quantity
+    const index = extras.findIndex(item => item.id === id);
+    if (index < 0) {
+      return;
+    }
+    const novo = extras[index];
+    if (!novo.quantity) novo.quantity = 1;
+    novo.quantity -= 1;
+    setExtras(extras.map(value => (value.id === id ? novo : value)));
   }
 
   function handleIncrementFood(): void {
     // Increment food quantity
+    setFoodQuantity(foodQuantity + 1);
   }
 
   function handleDecrementFood(): void {
     // Decrement food quantity
+    if (foodQuantity <= 1) {
+      return;
+    }
+    setFoodQuantity(foodQuantity - 1);
   }
 
   const toggleFavorite = useCallback(() => {
     // Toggle if food is favorite or not
+    setIsFavorite(!isFavorite);
   }, [isFavorite, food]);
 
   const cartTotal = useMemo(() => {
     // Calculate cartTotal
+    const totalExtras = extras.reduce(function (
+      acumulador,
+      valorAtual,
+    ): number {
+      const sum = valorAtual.value * valorAtual.quantity;
+      return acumulador + sum;
+    },
+    0);
+    const total =
+      (Number(food.price) + Number(totalExtras)) * Number(foodQuantity);
+
+    return formatValue(total);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
     // Finish the order and save on the API
+    await api.post('/orders', { ...food, extras });
+    navigation.navigate('Orders');
   }
 
   // Calculate the correct icon name
